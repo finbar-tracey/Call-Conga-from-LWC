@@ -1,5 +1,16 @@
 import getCongaSettings from '@salesforce/apex/Pro_ModifyProduction_con.getCongaSettings';
 
+connectedCallback() {
+
+        getCongaSettings()
+            .then(data => {
+                this.congaSettings = data;
+            })
+            .catch(error => {
+                console.error('Error loading Conga settings:', error);
+            });
+    }
+
 congaGeneration() {
         const recordId = this.congaSettings?.DummyRecord;
         let templateId = this.congaSettings?.IMVTemplate;
