@@ -21,6 +21,16 @@ handleCongaClick() {
         const barnId = this.SelectedBarnId?.value || '';
         const barnName = this.SelectedBarnId?.label;
 
+        // Query Ids from CMDT (no labels or commas in metadata, just raw IDs)
+        const sexedQueryId  = this.congaSettings?.Sexed_Query_Id__c;
+        const convQueryId   = this.congaSettings?.Conv_Query_Id__c;
+        const freshQueryId  = this.congaSettings?.Fresh_Query_Id__c;
+
+        if (!dummyRecordId || !templateId || !sexedQueryId || !convQueryId || !freshQueryId) {
+            console.error('Missing Conga settings for multi-query run');
+            return;
+        }
+
         // Build pv string once
         const pvParams = `pv0=${encodeURIComponent(selectedDate)}~pv1=${encodeURIComponent(barnId)}`;
 
@@ -33,10 +43,12 @@ handleCongaClick() {
                 // Encode "?pv..." once and reuse it
                 const encodedPv = encodeURIComponent('?' + pvParams);
 
+                // Same structure as your working hard-coded version,
+                // but IDs come from metadata
                 const queryIdParam =
-                    `[sexed]0Q_047UA0327609${encodedPv}` +
-                    `,[conv]0Q_046UA0379435${encodedPv}` +
-                    `,[fresh]0Q_044UA0416079${encodedPv}`;
+                    `[sexed]${sexedQueryId}${encodedPv}` +
+                    `,[conv]${convQueryId}${encodedPv}` +
+                    `,[fresh]${freshQueryId}${encodedPv}`;
 
                 const congaUrl =
                     `/apex/APXTConga4__Conga_Composer?SolMgr=1` +
