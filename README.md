@@ -1,85 +1,200 @@
-# 🐄 Conga LWC Integration for Salesforce
+# 🐄 Conga LWC Patterns for Salesforce
 
-![image](https://github.com/user-attachments/assets/a0bb5136-ba7c-4654-ab7b-d8d395e074f1)
+This repository contains multiple Lightning Web Components that all launch **Conga Composer**, each following a different pattern depending on the business use case (barn-based reports, IMV selection exports, bull reports, multi-query production reports, etc.).
 
-This Salesforce DX project provides a flexible, metadata-driven solution for dynamically launching Conga Composer from a Lightning Web Component (LWC). Templates and queries are selected based on user-defined picklist values, allowing non-technical users to configure the behavior of Conga Composer via metadata — no Apex or LWC code changes required.
+All components use a **shared Apex controller** and a **metadata-driven configuration** so IDs and behavior can be updated by admins without code changes.
 
-> 📌 **Note**: This LWC does not sit on a specific record page. It lives within a Salesforce tab and uses a **dummy record** to satisfy Conga’s URL requirements.
-
----
-
-## 📦 What’s Included
-
-- ✅ **Custom Metadata Type**: `CongaBarnTemplate__mdt`  
-  Stores mappings between **Barn Names** and **Conga Template IDs** for barn-specific output.
-
-- ✅ **Custom Metadata Type**: `pro_Conga_Settings__mdt`  
-  Stores global Conga values including:
-  - Dummy Record ID (required for Composer)
-  - Default Conga Template ID
-  - Conga Query IDs for different product types
-
-- ✅ **Apex Controller**: `CongaBarnTemplateService.cls`  
-  A lightweight Apex class used to retrieve the appropriate template based on the selected barn.
-
-- ✅ **Lightning Web Component**  
-  - Presents dropdowns for date, barn, and product type.
-  - Dynamically constructs the Conga URL based on metadata values and picklist selections.
-  - Launches Conga Composer in a new browser tab.
-
-- ✅ **Fallback Support**  
-  If no barn-specific template is found, the component defaults to the template from `pro_Conga_Settings__mdt`.
+> 📌 **Note:** Most of these LWCs do *not* run on a specific Salesforce record page. They use a **dummy record** from metadata to satisfy Conga URL requirements.
 
 ---
 
-## 🧠 Use Case
+## 🏗 High-Level Architecture
 
-When a user selects values in the LWC and clicks the Conga button:
+### 1. Apex Controller — `Pro_ModifyProduction_con`
 
-1. **Barn Selection**  
-   - The LWC reads the selected barn's **label** from the picklist.
-   - It searches `CongaBarnTemplate__mdt` for a matching `Barn_Name__c`.
-   - If found, the `Template_Id__c` is used; otherwise, it falls back to the default.
+A small controller providing two services:
 
-2. **Product Type Selection**  
-   - If the product type is `'All'`, the query defined as `AllProductsQuery__c` in `pro_Conga_Settings__mdt` is used.
-   - If a specific product type is selected (`Conventional`, `Sexed`, `Dairy`), a different query (`BarnQuery__c`) is used and the product type is passed as a parameter.
+#### `getCongaSettings()`
 
+Returns all records from `pro_Conga_Settings__mdt` in the format:  
+`Map<DeveloperName, pro_Value__c>`
 
-3. **URL Construction**  
-   - Parameters like date, barn ID, and product type are encoded and passed to Conga as `pv0`, `pv1`, and `pv2`.
-   - The full Conga Composer URL is built dynamically and opened in a new tab.
+Used in LWCs like:
 
----
+```js
+this.congaSettings.DummyRecord
+this.congaSettings.IMVQuery
+this.congaSettings.StandardTemplate
+```
 
-## 🔧 Metadata Configuration
+#### `getTemplateIdByBarn(barnName)`
 
-### `CongaBarnTemplate__mdt` Fields
+Looks up a **barn-specific template override** from CMDT `pro_CongaBarnMapping__mdt`.
 
-| Field API Name       | Label           | Description                        |
-|----------------------|------------------|------------------------------------|
-| `Barn_Name__c`       | Barn Name        | The exact label shown in the UI dropdown |
-| `Template_Id__c`     | Template ID      | The Conga Template ID to use       |
-
-### `pro_Conga_Settings__mdt` Fields
-
-| Field API Name        | Label               | Description                                      |
-|------------------------|----------------------|--------------------------------------------------|
-| `DummyRecord__c`       | Dummy Record ID      | A static Salesforce record used by Conga         |
-| `StandardTemplate__c`  | Default Template ID  | The fallback template used if barn match fails   |
-| `AllProductsQuery__c`  | All Products Query   | Query used when 'All' is selected for product type |
-| `BarnQuery__c`         | Barn Query           | Query used for specific product type selections  |
+If no barn match exists → LWC falls back to `StandardTemplate`.
 
 ---
 
+## 🗂 Metadata Used
 
-## ✅ Benefits
+### `pro_Conga_Settings__mdt` (Global Key/Value Configuration)
 
-- 🔧 **Easily configurable** through Metadata Types
-- 👨‍💼 **No code changes** needed for new barns or templates
-- 🚫 **No dependency** on record pages
-- 🔁 **Reusable** for similar LWC-based Conga launchers
-- 🔍 **Dynamic logic** for queries and templates based on UI selections
+| DeveloperName             | Description                                                   |
+|---------------------------|---------------------------------------------------------------|
+| DummyRecord               | Salesforce record ID used in all Conga Composer launches      |
+| StandardTemplate          | Default/fallback Conga Template                               |
+| AllProductsQuery          | Query for “All” product types                                 |
+| BarnQuery                 | Query used for specific product types                         |
+| IMVTemplate               | Template used for IMV mass-print                              |
+| IMVQuery                  | IMV query ID                                                  |
+| BullReportTemplateQuery   | Template used for bull report                                 |
+| BullReportQuery           | Header query for bull report                                  |
+| BullReportLineQuery       | Line query for bull report                                    |
+| Sexed_Query_Id__c         | Query for “Sexed” production                                  |
+| Conv_Query_Id__c          | Query for “Conventional” production                           |
+| Fresh_Query_Id__c         | Query for “Fresh” production                                  |
+
+These *must* match the LWCs’ expected developer names.
 
 ---
 
+### `pro_CongaBarnMapping__mdt` (Barn → Template Mapping)
+
+| Field              | Description                      |
+|--------------------|----------------------------------|
+| pro_Barn_Name__c   | The barn label as shown in UI    |
+| pro_Template_Id__c | Template override for that barn  |
+
+If no match exists → uses `StandardTemplate`.
+
+---
+
+## 🌐 Shared LWC Pattern (Used by All LWCs)
+
+```js
+import getCongaSettings from '@salesforce/apex/Pro_ModifyProduction_con.getCongaSettings';
+import getTemplateIdByBarn from '@salesforce/apex/Pro_ModifyProduction_con.getTemplateIdByBarn';
+
+connectedCallback() {
+    getCongaSettings().then(data => {
+        this.congaSettings = data; // Map<DeveloperName, Value>
+    }).catch(error => {
+        console.error('Error loading Conga settings:', error);
+    });
+}
+```
+
+All LWCs then construct a Conga URL of the form:
+
+```text
+/apex/APXTConga4__Conga_Composer?SolMgr=1
+    &serverUrl=<origin>
+    &id=<dummy record>
+    &QueryId=<query string>
+    &TemplateId=<template id>
+```
+
+---
+
+# 📚 LWC Patterns Included in This Repo
+
+---
+
+## 1️⃣ Pattern: Date + Barn + Product Type (CongaClick1)
+
+**Use Case:** User selects Date → Barn → Product Type.
+
+**Logic:**
+
+- If Product Type = **All**  
+  → Use `AllProductsQuery`
+- Else  
+  → Use `BarnQuery` and pass product type as `pv2`
+
+**Parameters:**
+
+| PV  | Meaning        |
+|-----|----------------|
+| pv0 | Selected Date  |
+| pv1 | Barn ID        |
+| pv2 | Product Type (if not "All") |
+
+**QueryId example:**
+
+```text
+[jr]<QueryId>?pv0=...~pv1=...~pv2=...
+```
+
+This LWC also supports **barn-based template overrides** via CMDT.
+
+---
+
+## 2️⃣ Pattern: IMV Multi-Record Mass Print (CongaClick2)
+
+**Use Case:** User selects multiple rows in a datatable → generate document.
+
+**Logic:**
+
+- Selected record IDs are joined like: `'id1'|'id2'|'id3'`
+- Sent as `pv0`
+- Query filters with `Id in ({pv0})`
+
+**Parameters:**
+
+| PV  | Meaning                    |
+|-----|----------------------------|
+| pv0 | Pipe-delimited record IDs |
+
+**QueryId example:**
+
+```text
+[imv]<QueryId>?pv0='id1'|'id2'|'id3'
+```
+
+---
+
+## 3️⃣ Pattern: Bull Report (Header + Line Queries) (CongaClick3)
+
+**Use Case:** Generate a bull-level report with line-level details.
+
+**Multi-query structure:**
+
+```text
+[QCQ]<HeaderQueryId>,
+[QCSQ]<LineQueryId>?pv0=...
+```
+
+**Parameters:**
+
+| PV  | Meaning                     |
+|-----|-----------------------------|
+| pv0 | Selected stock record IDs  |
+
+Conga Composer receives both query results in one run.
+
+---
+
+## 4️⃣ Pattern: Multi-Query Production Export (Sexed, Conv, Fresh) (CongaClick4)
+
+**Use Case:** Run *three* product category queries in a single Conga document.
+
+**Multi-query structure:**
+
+```text
+[sexed]<SexedQuery>?pv0=...~pv1=...
+,[conv]<ConvQuery>?pv0=...~pv1=...
+,[fresh]<FreshQuery>?pv0=...~pv1=...
+```
+
+**Parameters:**
+
+| PV  | Meaning        |
+|-----|----------------|
+| pv0 | Selected Date |
+| pv1 | Barn ID       |
+
+Each query receives the same PV values.
+
+Supports barn-based template overrides.
+
+---
