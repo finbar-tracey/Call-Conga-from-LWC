@@ -100,7 +100,7 @@ All LWCs then construct a Conga URL of the form:
 
 ---
 
-## 1️⃣ Pattern: Date + Barn + Product Type (CongaClick1)
+## 1. Pattern: Date + Barn + Product Type (CongaClick1)
 
 **Use Case:** User selects Date → Barn → Product Type.
 
@@ -129,7 +129,7 @@ This LWC also supports **barn-based template overrides** via CMDT.
 
 ---
 
-## 2️⃣ Pattern: IMV Multi-Record Mass Print (CongaClick2)
+## 2. Pattern: IMV Multi-Record Mass Print (CongaClick2)
 
 **Use Case:** User selects multiple rows in a datatable → generate document.
 
@@ -153,7 +153,7 @@ This LWC also supports **barn-based template overrides** via CMDT.
 
 ---
 
-## 3️⃣ Pattern: Bull Report (Header + Line Queries) (CongaClick3)
+## 3. Pattern: Bull Report (Header + Line Queries) (CongaClick3)
 
 **Use Case:** Generate a bull-level report with line-level details.
 
@@ -174,7 +174,7 @@ Conga Composer receives both query results in one run.
 
 ---
 
-## 4️⃣ Pattern: Multi-Query Production Export (Sexed, Conv, Fresh) (CongaClick4)
+## 4. Pattern: Multi-Query Production Export (Sexed, Conv, Fresh) (CongaClick4)
 
 **Use Case:** Run *three* product category queries in a single Conga document.
 
