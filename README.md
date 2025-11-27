@@ -1,4 +1,4 @@
-# 🐄 Conga LWC Patterns for Salesforce
+# Conga LWC Patterns for Salesforce
 
 This repository contains multiple Lightning Web Components that all launch **Conga Composer**, each following a different pattern depending on the business use case (barn-based reports, IMV selection exports, bull reports, multi-query production reports, etc.).
 
