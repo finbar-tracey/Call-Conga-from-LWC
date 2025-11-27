@@ -43,8 +43,6 @@ handleCongaClick() {
                 // Encode "?pv..." once and reuse it
                 const encodedPv = encodeURIComponent('?' + pvParams);
 
-                // Same structure as your working hard-coded version,
-                // but IDs come from metadata
                 const queryIdParam =
                     `[sexed]${sexedQueryId}${encodedPv}` +
                     `,[conv]${convQueryId}${encodedPv}` +
